@@ -17,7 +17,7 @@ else:
 LOG_PATH = os.path.join(BASE_DIR, "registro_uso.csv")
 LOG_HEADERS = ["Programa", "Inicio", "Fin", "Duracion_seg", "Duracion"]
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 GITHUB_REPO = "santiagoPuleio/appsanti-launcher"
 ASSET_NAME = "AppSanti.exe"
 
@@ -434,8 +434,13 @@ class Launcher(tk.Tk):
         self.after(0, lambda: self._instalar_actualizacion(destino, tag))
 
     def _instalar_actualizacion(self, destino, tag):
-        self.status_var.set(f"Actualizando a {tag}... reiniciando.")
-        self.update()
+        self.status_var.set(f"Actualización {tag} lista. Cerrando para instalarla...")
+        messagebox.showinfo(
+            "Actualización disponible",
+            f"Se descargó la versión {tag}.\n\n"
+            "El programa se va a cerrar y reabrir solo con la nueva versión.\n"
+            "Si no se reabre en unos segundos, volvé a abrirlo manualmente: ya va a tener la actualización aplicada.",
+        )
         aplicar_actualizacion_y_salir(destino)
 
     def _al_cerrar(self):

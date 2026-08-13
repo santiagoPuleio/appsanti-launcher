@@ -2,6 +2,7 @@
 import csv
 import json
 import os
+import re
 import shutil
 import sys
 import subprocess
@@ -19,7 +20,7 @@ else:
 LOG_PATH = os.path.join(BASE_DIR, "registro_uso.csv")
 LOG_HEADERS = ["Programa", "Inicio", "Fin", "Duracion_seg", "Duracion"]
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 GITHUB_REPO = "santiagoPuleio/appsanti-launcher"
 ASSET_NAME = "AppSanti.exe"
 MANIFEST_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/master/manifest.json"
@@ -186,17 +187,27 @@ def _version_tuple(version):
 
 
 def buscar_actualizacion():
-    """Consulta el último release público en GitHub. Devuelve (tag, url_descarga) o None."""
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+    """Busca, entre TODOS los releases, el de mayor versión con tag "vX.Y.Z" (el del launcher).
+
+    No se puede usar /releases/latest: ese endpoint devuelve el release publicado
+    más recientemente sin importar el tag, y este repo también aloja releases con
+    tags propios para cada herramienta (ej. "calculadora_lomo-v1.0.0").
+    """
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/releases"
     req = urllib.request.Request(url, headers={"User-Agent": "AppSanti-Launcher"})
     with urllib.request.urlopen(req, timeout=5) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
+        releases = json.loads(resp.read().decode("utf-8"))
 
-    tag = data.get("tag_name", "")
-    if not tag or _version_tuple(tag) <= _version_tuple(__version__):
+    candidatos = [r for r in releases if re.fullmatch(r"v\d+(\.\d+)*", r.get("tag_name", ""))]
+    if not candidatos:
+        return None
+    mejor = max(candidatos, key=lambda r: _version_tuple(r["tag_name"]))
+
+    tag = mejor["tag_name"]
+    if _version_tuple(tag) <= _version_tuple(__version__):
         return None
 
-    for asset in data.get("assets", []):
+    for asset in mejor.get("assets", []):
         if asset.get("name") == ASSET_NAME:
             return tag, asset.get("browser_download_url")
     return None

@@ -2,11 +2,13 @@
 import csv
 import json
 import os
+import shutil
 import sys
 import subprocess
 import threading
 import tkinter as tk
 import urllib.request
+import zipfile
 from datetime import datetime
 from tkinter import ttk, messagebox
 
@@ -17,38 +19,110 @@ else:
 LOG_PATH = os.path.join(BASE_DIR, "registro_uso.csv")
 LOG_HEADERS = ["Programa", "Inicio", "Fin", "Duracion_seg", "Duracion"]
 
-__version__ = "1.0.2"
+__version__ = "2.0.0"
 GITHUB_REPO = "santiagoPuleio/appsanti-launcher"
 ASSET_NAME = "AppSanti.exe"
+MANIFEST_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/master/manifest.json"
+LOCAL_MANIFEST_PATH = os.path.join(BASE_DIR, "manifest_local.json")
 
-CALCULADORA_LOMO = ("Calculadora de Lomo", "📏", r"calculadoraLomo\dist\Lomera.exe")
-CONTADOR_CARACTERES = ("Contador de Caracteres", "🔢", r"cont2.0\dist\contadorCaracteres_mod.exe")
-GENERADOR_PDF = ("Generador PDF Bren/Meli", "🧾", r"generadorMeliBren (1)\GeneradorPDFBrenMeli\dist\generarPDF\generarPDF.exe")
-VERIFICADOR_INDICES = ("Verificador de Índices PDF", "📄", r"programaIndices\validadorIndices\dist\verificador_indices\verificador_indices.exe")
-VALIDADOR_PREPLANTA = ("ValidadorPrePlanta", "📐", r"validadorMeli\ValidadorPrePlanta\dist\margenes_pagina\margenes_pagina.exe")
-VALIDADOR_INDICES_MEJORADO = ("Validador de Índices Mejorado", "📊", r"ValidarIndicesMejorado\dist\validador_superindices_word\validador_superindices_word.exe")
-VALIDADOR_PIE = ("Validador de Pie", "👣", r"validarPie\dist\validador_superindices_word\validador_superindices_word.exe")
-VALIDADOR_PREPLANTA_FOLIOS = (
-    "ValidadorPrePlantavFolios",
-    "📑",
-    r"validadorpreplantaVFolios\validadorMeli\ValidadorPrePlanta\dist\margenes_pagina\margenes_pagina.exe",
-)
-
-PESTANAS = {
-    "Editorial": [
-        CALCULADORA_LOMO,
-        CONTADOR_CARACTERES,
-        GENERADOR_PDF,
-        VERIFICADOR_INDICES,
-        VALIDADOR_PREPLANTA,
-        VALIDADOR_INDICES_MEJORADO,
-        VALIDADOR_PIE,
-    ],
-    "CPS": [
-        CALCULADORA_LOMO,
-        GENERADOR_PDF,
-        VALIDADOR_PREPLANTA_FOLIOS,
-    ],
+# Copia de referencia de manifest.json: se usa como punto de partida la primera vez
+# que se abre el panel en una PC (para no forzar una descarga de algo que ya está instalado).
+DEFAULT_MANIFEST = {
+    "programas": [
+        {
+            "id": "calculadora_lomo",
+            "nombre": "Calculadora de Lomo",
+            "icono": "📏",
+            "version": "1.0.0",
+            "tipo": "archivo",
+            "ruta": r"calculadoraLomo\dist\Lomera.exe",
+            "release": "calculadora_lomo-v1.0.0",
+            "asset": "Lomera.exe",
+            "pestanas": ["Editorial", "CPS"],
+        },
+        {
+            "id": "contador_caracteres",
+            "nombre": "Contador de Caracteres",
+            "icono": "🔢",
+            "version": "1.0.0",
+            "tipo": "archivo",
+            "ruta": r"cont2.0\dist\contadorCaracteres_mod.exe",
+            "release": "contador_caracteres-v1.0.0",
+            "asset": "contadorCaracteres_mod.exe",
+            "pestanas": ["Editorial"],
+        },
+        {
+            "id": "generador_pdf",
+            "nombre": "Generador PDF Bren/Meli",
+            "icono": "🧾",
+            "version": "1.0.0",
+            "tipo": "archivo",
+            "ruta": r"generadorMeliBren (1)\GeneradorPDFBrenMeli\dist\generarPDF\generarPDF.exe",
+            "release": "generador_pdf-v1.0.0",
+            "asset": "generarPDF.exe",
+            "pestanas": ["Editorial", "CPS"],
+        },
+        {
+            "id": "verificador_indices",
+            "nombre": "Verificador de Índices PDF",
+            "icono": "📄",
+            "version": "1.0.0",
+            "tipo": "carpeta",
+            "ruta": r"programaIndices\validadorIndices\dist\verificador_indices",
+            "ejecutable": "verificador_indices.exe",
+            "release": "verificador_indices-v1.0.0",
+            "asset": "verificador_indices.zip",
+            "pestanas": ["Editorial"],
+        },
+        {
+            "id": "validador_preplanta",
+            "nombre": "ValidadorPrePlanta",
+            "icono": "📐",
+            "version": "1.0.0",
+            "tipo": "carpeta",
+            "ruta": r"validadorMeli\ValidadorPrePlanta\dist\margenes_pagina",
+            "ejecutable": "margenes_pagina.exe",
+            "release": "validador_preplanta-v1.0.0",
+            "asset": "margenes_pagina.zip",
+            "pestanas": ["Editorial"],
+        },
+        {
+            "id": "validador_indices_mejorado",
+            "nombre": "Validador de Índices Mejorado",
+            "icono": "📊",
+            "version": "1.0.0",
+            "tipo": "carpeta",
+            "ruta": r"ValidarIndicesMejorado\dist\validador_superindices_word",
+            "ejecutable": "validador_superindices_word.exe",
+            "release": "validador_indices_mejorado-v1.0.0",
+            "asset": "validador_indices_mejorado.zip",
+            "pestanas": ["Editorial"],
+        },
+        {
+            "id": "validador_pie",
+            "nombre": "Validador de Pie",
+            "icono": "👣",
+            "version": "1.0.0",
+            "tipo": "carpeta",
+            "ruta": r"validarPie\dist\validador_superindices_word",
+            "ejecutable": "validador_superindices_word.exe",
+            "release": "validador_pie-v1.0.0",
+            "asset": "validador_pie.zip",
+            "pestanas": ["Editorial"],
+        },
+        {
+            "id": "validador_preplanta_folios",
+            "nombre": "ValidadorPrePlantavFolios",
+            "icono": "📑",
+            "version": "1.0.0",
+            "tipo": "carpeta",
+            "ruta": r"validadorpreplantaVFolios\validadorMeli\ValidadorPrePlanta\dist\margenes_pagina",
+            "ejecutable": "margenes_pagina.exe",
+            "release": "validador_preplanta_folios-v1.0.0",
+            "asset": "margenes_pagina_folios.zip",
+            "pestanas": ["CPS"],
+        },
+    ]
 }
 
 PALETTE = {
@@ -108,6 +182,9 @@ def _version_tuple(version):
     return tuple(partes)
 
 
+# --- Auto-actualización del launcher (AppSanti.exe) ---------------------------------
+
+
 def buscar_actualizacion():
     """Consulta el último release público en GitHub. Devuelve (tag, url_descarga) o None."""
     url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
@@ -125,10 +202,10 @@ def buscar_actualizacion():
     return None
 
 
-def descargar_actualizacion(url, destino):
+def descargar_a_archivo(url, destino):
     req = urllib.request.Request(url, headers={"User-Agent": "AppSanti-Launcher"})
-    with urllib.request.urlopen(req, timeout=60) as resp, open(destino, "wb") as f:
-        f.write(resp.read())
+    with urllib.request.urlopen(req, timeout=120) as resp, open(destino, "wb") as f:
+        shutil.copyfileobj(resp, f, length=1024 * 1024)
 
 
 def aplicar_actualizacion_y_salir(exe_nuevo):
@@ -152,6 +229,75 @@ def aplicar_actualizacion_y_salir(exe_nuevo):
         f.write(contenido_bat)
     subprocess.Popen(["cmd", "/c", bat_path], creationflags=subprocess.CREATE_NO_WINDOW)
     os._exit(0)
+
+
+# --- Manifest de programas (Editorial / CPS) -----------------------------------------
+
+
+def cargar_manifest_local():
+    if os.path.isfile(LOCAL_MANIFEST_PATH):
+        try:
+            with open(LOCAL_MANIFEST_PATH, encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, ValueError):
+            pass
+    guardar_manifest_local(DEFAULT_MANIFEST)
+    return json.loads(json.dumps(DEFAULT_MANIFEST))
+
+
+def guardar_manifest_local(manifest):
+    with open(LOCAL_MANIFEST_PATH, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+
+def obtener_manifest_remoto():
+    req = urllib.request.Request(MANIFEST_URL, headers={"User-Agent": "AppSanti-Launcher"})
+    with urllib.request.urlopen(req, timeout=8) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def comparar_programas(local, remoto):
+    """Devuelve la lista de programas del manifest remoto que son nuevos o tienen otra versión."""
+    locales_por_id = {p["id"]: p for p in local.get("programas", [])}
+    cambios = []
+    for programa in remoto.get("programas", []):
+        actual = locales_por_id.get(programa["id"])
+        if actual is None or actual.get("version") != programa.get("version"):
+            cambios.append((actual, programa))
+    return cambios
+
+
+def ruta_absoluta_programa(programa):
+    return os.path.join(BASE_DIR, programa["ruta"])
+
+
+def ruta_ejecutable_programa(programa):
+    base = ruta_absoluta_programa(programa)
+    if programa["tipo"] == "carpeta":
+        return os.path.join(base, programa["ejecutable"])
+    return base
+
+
+def instalar_programa(programa):
+    """Descarga el asset del release del programa y lo instala en su ruta local."""
+    url = f"https://github.com/{GITHUB_REPO}/releases/download/{programa['release']}/{programa['asset']}"
+    destino_final = ruta_absoluta_programa(programa)
+
+    if programa["tipo"] == "archivo":
+        os.makedirs(os.path.dirname(destino_final), exist_ok=True)
+        temp = destino_final + ".descarga"
+        descargar_a_archivo(url, temp)
+        os.replace(temp, destino_final)
+    else:
+        temp_zip = destino_final + ".zip.descarga"
+        os.makedirs(os.path.dirname(destino_final), exist_ok=True)
+        descargar_a_archivo(url, temp_zip)
+        if os.path.isdir(destino_final):
+            shutil.rmtree(destino_final)
+        os.makedirs(destino_final, exist_ok=True)
+        with zipfile.ZipFile(temp_zip) as zf:
+            zf.extractall(destino_final)
+        os.remove(temp_zip)
 
 
 class HistorialWindow(tk.Toplevel):
@@ -220,9 +366,12 @@ class Launcher(tk.Tk):
         self.activos = {}
         self._next_id = 0
         self.status_var = tk.StringVar(value="Listo.")
+        self.manifest = cargar_manifest_local()
 
         self._configurar_estilos()
         self._construir_header()
+        self.programas_frame = tk.Frame(self, bg=PALETTE["bg"])
+        self.programas_frame.pack(fill="x")
         self._construir_programas()
         self._construir_activos()
         self._construir_footer()
@@ -289,21 +438,33 @@ class Launcher(tk.Tk):
             fg="#dbe2ff",
         ).pack(anchor="w", padx=20, pady=(0, 12))
 
+    def _pestanas_ordenadas(self):
+        pestanas = []
+        for programa in self.manifest.get("programas", []):
+            for pestana in programa.get("pestanas", []):
+                if pestana not in pestanas:
+                    pestanas.append(pestana)
+        return pestanas
+
     def _construir_programas(self):
-        notebook = ttk.Notebook(self)
+        for widget in self.programas_frame.winfo_children():
+            widget.destroy()
+
+        notebook = ttk.Notebook(self.programas_frame)
         notebook.pack(fill="x", padx=16, pady=(14, 6))
 
-        for pestana_nombre, herramientas in PESTANAS.items():
+        for pestana_nombre in self._pestanas_ordenadas():
             tab = tk.Frame(notebook, bg=PALETTE["bg"], height=420)
             tab.pack_propagate(False)
             notebook.add(tab, text=pestana_nombre)
 
             inner = tk.Frame(tab, bg=PALETTE["bg"])
             inner.pack(fill="both", expand=True, padx=4, pady=8)
-            for nombre, icono, ruta in herramientas:
-                self._crear_card(inner, nombre, icono, ruta).pack(fill="x", pady=4)
+            for programa in self.manifest.get("programas", []):
+                if pestana_nombre in programa.get("pestanas", []):
+                    self._crear_card(inner, programa).pack(fill="x", pady=4)
 
-    def _crear_card(self, parent, nombre, icono, ruta):
+    def _crear_card(self, parent, programa):
         card = tk.Frame(
             parent,
             bg=PALETTE["card"],
@@ -311,10 +472,10 @@ class Launcher(tk.Tk):
             highlightbackground=PALETTE["border"],
             cursor="hand2",
         )
-        icono_lbl = tk.Label(card, text=icono, font=("Segoe UI Emoji", 16), bg=PALETTE["card"])
+        icono_lbl = tk.Label(card, text=programa.get("icono", "🧩"), font=("Segoe UI Emoji", 16), bg=PALETTE["card"])
         icono_lbl.pack(side="left", padx=(14, 10), pady=10)
         nombre_lbl = tk.Label(
-            card, text=nombre, font=("Segoe UI", 10, "bold"), bg=PALETTE["card"], fg=PALETTE["text"], anchor="w"
+            card, text=programa["nombre"], font=("Segoe UI", 10, "bold"), bg=PALETTE["card"], fg=PALETTE["text"], anchor="w"
         )
         nombre_lbl.pack(side="left", fill="x", expand=True, pady=10)
         flecha_lbl = tk.Label(card, text="▶", font=("Segoe UI", 10), bg=PALETTE["card"], fg=PALETTE["accent"])
@@ -331,7 +492,7 @@ class Launcher(tk.Tk):
                 w.configure(bg=PALETTE["card"])
 
         def on_click(_e):
-            self.abrir_programa(nombre, ruta)
+            self.abrir_programa(programa)
 
         for w in widgets:
             w.bind("<Enter>", on_enter)
@@ -372,8 +533,9 @@ class Launcher(tk.Tk):
     def _abrir_historial(self):
         HistorialWindow(self)
 
-    def abrir_programa(self, nombre, ruta_relativa):
-        ruta = os.path.join(BASE_DIR, ruta_relativa)
+    def abrir_programa(self, programa):
+        nombre = programa["nombre"]
+        ruta = ruta_ejecutable_programa(programa)
         if not os.path.isfile(ruta):
             messagebox.showerror("No encontrado", f"No se encontró el ejecutable de '{nombre}':\n{ruta}")
             return
@@ -387,11 +549,16 @@ class Launcher(tk.Tk):
         item = self.tree_activos.insert("", "end", values=(nombre, "0:00"))
         self.activos[self._next_id] = {
             "nombre": nombre,
+            "ruta": ruta,
             "proc": proc,
             "inicio": datetime.now(),
             "item": item,
         }
         self.status_var.set(f"Abriendo: {nombre}")
+
+    def _programa_en_uso(self, programa):
+        ruta = ruta_ejecutable_programa(programa)
+        return any(info["ruta"] == ruta for info in self.activos.values())
 
     def _tick(self):
         for key, info in list(self.activos.items()):
@@ -407,6 +574,8 @@ class Launcher(tk.Tk):
                 self.tree_activos.item(info["item"], values=(info["nombre"], format_duration(elapsed)))
         self.after(1000, self._tick)
 
+    # --- Auto-actualización del launcher ---
+
     def _chequear_actualizaciones(self):
         if not getattr(sys, "frozen", False):
             return
@@ -416,22 +585,23 @@ class Launcher(tk.Tk):
         try:
             resultado = buscar_actualizacion()
         except Exception:
-            return
-        if not resultado:
-            return
-        tag, url = resultado
-        if not url:
-            return
+            resultado = None
 
-        self.after(0, lambda: self.status_var.set(f"Descargando actualización {tag}..."))
-        destino = os.path.join(BASE_DIR, "AppSanti_nuevo.exe")
-        try:
-            descargar_actualizacion(url, destino)
-        except Exception:
-            self.after(0, lambda: self.status_var.set("No se pudo descargar la actualización."))
-            return
+        if resultado:
+            tag, url = resultado
+            if url:
+                self.after(0, lambda: self.status_var.set(f"Descargando actualización {tag}..."))
+                destino = os.path.join(BASE_DIR, "AppSanti_nuevo.exe")
+                try:
+                    descargar_a_archivo(url, destino)
+                except Exception:
+                    self.after(0, lambda: self.status_var.set("No se pudo descargar la actualización."))
+                else:
+                    self.after(0, lambda: self._instalar_actualizacion(destino, tag))
+                    return
 
-        self.after(0, lambda: self._instalar_actualizacion(destino, tag))
+        # Si no hubo actualización del launcher (o falló la descarga), revisamos programas.
+        self._revisar_actualizaciones_programas()
 
     def _instalar_actualizacion(self, destino, tag):
         self.status_var.set(f"Actualización {tag} lista. Cerrando para instalarla...")
@@ -442,6 +612,87 @@ class Launcher(tk.Tk):
             "Si no se reabre en unos segundos, volvé a abrirlo manualmente: ya va a tener la actualización aplicada.",
         )
         aplicar_actualizacion_y_salir(destino)
+
+    # --- Auto-actualización de los programas (manifest) ---
+
+    def _revisar_actualizaciones_programas(self):
+        try:
+            remoto = obtener_manifest_remoto()
+        except Exception:
+            return
+        cambios = comparar_programas(self.manifest, remoto)
+        if not cambios:
+            return
+        self.after(0, lambda: self._preguntar_actualizar_programas(cambios, remoto))
+
+    def _preguntar_actualizar_programas(self, cambios, remoto):
+        lineas = []
+        for actual, programa in cambios:
+            if actual is None:
+                lineas.append(f"• {programa['nombre']} (nuevo)")
+            else:
+                lineas.append(f"• {programa['nombre']} ({actual['version']} → {programa['version']})")
+
+        respuesta = messagebox.askyesno(
+            "Actualizaciones disponibles",
+            "Hay actualizaciones disponibles para:\n\n" + "\n".join(lineas) + "\n\n¿Instalarlas ahora?",
+        )
+        if not respuesta:
+            self.status_var.set("Actualizaciones de programas rechazadas.")
+            return
+
+        self.status_var.set("Instalando actualizaciones de programas...")
+        programas_a_instalar = [programa for _actual, programa in cambios]
+        threading.Thread(
+            target=self._aplicar_actualizaciones_programas_worker,
+            args=(programas_a_instalar, remoto),
+            daemon=True,
+        ).start()
+
+    def _aplicar_actualizaciones_programas_worker(self, programas, remoto):
+        instalados, omitidos, fallidos = [], [], []
+        for programa in programas:
+            if self._programa_en_uso(programa):
+                omitidos.append(programa["nombre"])
+                continue
+            self.after(0, lambda n=programa["nombre"]: self.status_var.set(f"Descargando {n}..."))
+            try:
+                instalar_programa(programa)
+            except Exception:
+                fallidos.append(programa["nombre"])
+            else:
+                instalados.append(programa)
+
+        self.after(0, lambda: self._finalizar_actualizaciones_programas(instalados, omitidos, fallidos, remoto))
+
+    def _finalizar_actualizaciones_programas(self, instalados, omitidos, fallidos, remoto):
+        if instalados:
+            locales_por_id = {p["id"]: p for p in self.manifest.get("programas", [])}
+            for programa in instalados:
+                locales_por_id[programa["id"]] = programa
+            # Preserva el orden del manifest remoto para que la UI se vea consistente.
+            self.manifest["programas"] = [
+                locales_por_id[p["id"]] for p in remoto.get("programas", []) if p["id"] in locales_por_id
+            ]
+            guardar_manifest_local(self.manifest)
+            self._construir_programas()
+
+        partes = []
+        if instalados:
+            partes.append(f"{len(instalados)} actualizado(s)")
+        if omitidos:
+            partes.append(f"{len(omitidos)} omitido(s) (en uso)")
+        if fallidos:
+            partes.append(f"{len(fallidos)} con error")
+        self.status_var.set("Actualización de programas: " + ", ".join(partes) if partes else "Listo.")
+
+        if omitidos or fallidos:
+            detalle = ""
+            if omitidos:
+                detalle += "Omitidos (cerralos y volvé a intentar):\n" + "\n".join(omitidos) + "\n\n"
+            if fallidos:
+                detalle += "Con error al instalar:\n" + "\n".join(fallidos)
+            messagebox.showwarning("Actualización de programas incompleta", detalle.strip())
 
     def _al_cerrar(self):
         if self.activos:

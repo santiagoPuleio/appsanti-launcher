@@ -1,0 +1,97 @@
+{
+  "programas": [
+    {
+      "id": "calculadora_lomo",
+      "nombre": "Calculadora de Lomo",
+      "icono": "📏",
+      "version": "1.0.0",
+      "tipo": "archivo",
+      "ruta": "calculadoraLomo\\dist\\Lomera.exe",
+      "release": "calculadora_lomo-v1.0.0",
+      "asset": "Lomera.exe",
+      "pestanas": ["Editorial", "CPS"]
+    },
+    {
+      "id": "contador_caracteres",
+      "nombre": "Contador de Caracteres",
+      "icono": "🔢",
+      "version": "1.0.0",
+      "tipo": "archivo",
+      "ruta": "cont2.0\\dist\\contadorCaracteres_mod.exe",
+      "release": "contador_caracteres-v1.0.0",
+      "asset": "contadorCaracteres_mod.exe",
+      "pestanas": ["Editorial"]
+    },
+    {
+      "id": "generador_pdf",
+      "nombre": "Generador PDF Bren/Meli",
+      "icono": "🧾",
+      "version": "1.0.0",
+      "tipo": "archivo",
+      "ruta": "generadorMeliBren (1)\\GeneradorPDFBrenMeli\\dist\\generarPDF\\generarPDF.exe",
+      "release": "generador_pdf-v1.0.0",
+      "asset": "generarPDF.exe",
+      "pestanas": ["Editorial", "CPS"]
+    },
+    {
+      "id": "verificador_indices",
+      "nombre": "Verificador de Índices PDF",
+      "icono": "📄",
+      "version": "1.0.0",
+      "tipo": "carpeta",
+      "ruta": "programaIndices\\validadorIndices\\dist\\verificador_indices",
+      "ejecutable": "verificador_indices.exe",
+      "release": "verificador_indices-v1.0.0",
+      "asset": "verificador_indices.zip",
+      "pestanas": ["Editorial"]
+    },
+    {
+      "id": "validador_preplanta",
+      "nombre": "ValidadorPrePlanta",
+      "icono": "📐",
+      "version": "1.0.0",
+      "tipo": "carpeta",
+      "ruta": "validadorMeli\\ValidadorPrePlanta\\dist\\margenes_pagina",
+      "ejecutable": "margenes_pagina.exe",
+      "release": "validador_preplanta-v1.0.0",
+      "asset": "margenes_pagina.zip",
+      "pestanas": ["Editorial"]
+    },
+    {
+      "id": "validador_indices_mejorado",
+      "nombre": "Validador de Índices Mejorado",
+      "icono": "📊",
+      "version": "1.0.0",
+      "tipo": "carpeta",
+      "ruta": "ValidarIndicesMejorado\\dist\\validador_superindices_word",
+      "ejecutable": "validador_superindices_word.exe",
+      "release": "validador_indices_mejorado-v1.0.0",
+      "asset": "validador_indices_mejorado.zip",
+      "pestanas": ["Editorial"]
+    },
+    {
+      "id": "validador_pie",
+      "nombre": "Validador de Pie",
+      "icono": "👣",
+      "version": "1.0.0",
+      "tipo": "carpeta",
+      "ruta": "validarPie\\dist\\validador_superindices_word",
+      "ejecutable": "validador_superindices_word.exe",
+      "release": "validador_pie-v1.0.0",
+      "asset": "validador_pie.zip",
+      "pestanas": ["Editorial"]
+    },
+    {
+      "id": "validador_preplanta_folios",
+      "nombre": "ValidadorPrePlantavFolios",
+      "icono": "📑",
+      "version": "1.0.0",
+      "tipo": "carpeta",
+      "ruta": "validadorpreplantaVFolios\\validadorMeli\\ValidadorPrePlanta\\dist\\margenes_pagina",
+      "ejecutable": "margenes_pagina.exe",
+      "release": "validador_preplanta_folios-v1.0.0",
+      "asset": "margenes_pagina_folios.zip",
+      "pestanas": ["CPS"]
+    }
+  ]
+}

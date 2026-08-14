@@ -4,10 +4,10 @@
       "id": "calculadora_lomo",
       "nombre": "Calculadora de Lomo",
       "icono": "📏",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "tipo": "archivo",
       "ruta": "calculadoraLomo\\dist\\Lomera.exe",
-      "release": "calculadora_lomo-v1.0.0",
+      "release": "calculadora_lomo-v1.0.1",
       "asset": "Lomera.exe",
       "pestanas": ["Editorial", "CPS"]
     },

@@ -20,7 +20,7 @@ else:
 LOG_PATH = os.path.join(BASE_DIR, "registro_uso.csv")
 LOG_HEADERS = ["Programa", "Inicio", "Fin", "Duracion_seg", "Duracion"]
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 GITHUB_REPO = "santiagoPuleio/appsanti-launcher"
 ASSET_NAME = "AppSanti.exe"
 MANIFEST_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/master/manifest.json"
@@ -370,7 +370,7 @@ class Launcher(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("AppSanti - Panel de Control")
-        self.geometry("460x780")
+        self.geometry("460x640")
         self.configure(bg=PALETTE["bg"])
         self.resizable(False, False)
 
@@ -465,17 +465,33 @@ class Launcher(tk.Tk):
         notebook.pack(fill="x", padx=16, pady=(14, 6))
 
         for pestana_nombre in self._pestanas_ordenadas():
-            tab = tk.Frame(notebook, bg=PALETTE["bg"], height=420)
+            tab = tk.Frame(notebook, bg=PALETTE["bg"], height=250)
             tab.pack_propagate(False)
             notebook.add(tab, text=pestana_nombre)
 
-            inner = tk.Frame(tab, bg=PALETTE["bg"])
-            inner.pack(fill="both", expand=True, padx=4, pady=8)
+            canvas = tk.Canvas(tab, bg=PALETTE["bg"], highlightthickness=0)
+            scrollbar = ttk.Scrollbar(tab, orient="vertical", command=canvas.yview)
+            inner = tk.Frame(canvas, bg=PALETTE["bg"])
+
+            inner_id = canvas.create_window((0, 0), window=inner, anchor="nw")
+            inner.bind("<Configure>", lambda e, c=canvas: c.configure(scrollregion=c.bbox("all")))
+            canvas.bind("<Configure>", lambda e, c=canvas, i=inner_id: c.itemconfig(i, width=e.width))
+            canvas.configure(yscrollcommand=scrollbar.set)
+
+            canvas.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=8)
+            scrollbar.pack(side="right", fill="y")
+
+            def on_wheel(event, c=canvas):
+                c.yview_scroll(-1 if event.delta > 0 else 1, "units")
+
+            canvas.bind("<MouseWheel>", on_wheel)
+            inner.bind("<MouseWheel>", on_wheel)
+
             for programa in self.manifest.get("programas", []):
                 if pestana_nombre in programa.get("pestanas", []):
-                    self._crear_card(inner, programa).pack(fill="x", pady=4)
+                    self._crear_card(inner, programa, on_wheel).pack(fill="x", pady=4, padx=(0, 4))
 
-    def _crear_card(self, parent, programa):
+    def _crear_card(self, parent, programa, on_wheel):
         card = tk.Frame(
             parent,
             bg=PALETTE["card"],
@@ -509,6 +525,7 @@ class Launcher(tk.Tk):
             w.bind("<Enter>", on_enter)
             w.bind("<Leave>", on_leave)
             w.bind("<Button-1>", on_click)
+            w.bind("<MouseWheel>", on_wheel)
 
         return card
 

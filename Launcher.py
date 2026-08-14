@@ -20,7 +20,7 @@ else:
 LOG_PATH = os.path.join(BASE_DIR, "registro_uso.csv")
 LOG_HEADERS = ["Programa", "Inicio", "Fin", "Duracion_seg", "Duracion"]
 
-__version__ = "2.0.2"
+__version__ = "2.0.3"
 GITHUB_REPO = "santiagoPuleio/appsanti-launcher"
 ASSET_NAME = "AppSanti.exe"
 MANIFEST_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/master/manifest.json"
@@ -213,10 +213,47 @@ def buscar_actualizacion():
     return None
 
 
-def descargar_a_archivo(url, destino):
-    req = urllib.request.Request(url, headers={"User-Agent": "AppSanti-Launcher"})
-    with urllib.request.urlopen(req, timeout=120) as resp, open(destino, "wb") as f:
-        shutil.copyfileobj(resp, f, length=1024 * 1024)
+def descargar_a_archivo(url, destino, firma=None, reintentos=3):
+    """Descarga a `destino`, verificando tamaño (Content-Length) y firma de archivo.
+
+    Si la descarga queda incompleta o corrupta (proxy corporativo, antivirus, corte de red)
+    reintenta antes de dejar el archivo en su lugar. Nunca deja un archivo a medio bajar.
+    """
+    ultimo_error = None
+    for _intento in range(1, reintentos + 1):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "AppSanti-Launcher"})
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                largo_esperado = resp.headers.get("Content-Length")
+                largo_esperado = int(largo_esperado) if largo_esperado is not None else None
+                with open(destino, "wb") as f:
+                    shutil.copyfileobj(resp, f, length=1024 * 1024)
+
+            largo_real = os.path.getsize(destino)
+            if largo_esperado is not None and largo_real != largo_esperado:
+                raise ValueError(
+                    f"Descarga incompleta: se esperaban {largo_esperado} bytes y llegaron {largo_real}."
+                )
+
+            if firma is not None:
+                with open(destino, "rb") as f:
+                    inicio = f.read(len(firma))
+                if inicio != firma:
+                    raise ValueError(
+                        "El archivo descargado no tiene el formato esperado "
+                        "(¿un proxy o antivirus lo interceptó?)."
+                    )
+
+            return
+        except Exception as e:
+            ultimo_error = e
+            if os.path.isfile(destino):
+                try:
+                    os.remove(destino)
+                except OSError:
+                    pass
+
+    raise RuntimeError(f"No se pudo descargar {url} después de {reintentos} intento(s): {ultimo_error}")
 
 
 def aplicar_actualizacion_y_salir(exe_nuevo):
@@ -290,25 +327,40 @@ def ruta_ejecutable_programa(programa):
 
 
 def instalar_programa(programa):
-    """Descarga el asset del release del programa y lo instala en su ruta local."""
+    """Descarga el asset del release del programa y lo instala en su ruta local.
+
+    Verifica que la descarga esté completa y sea válida ANTES de tocar la instalación
+    existente: si algo sale mal, el programa que ya funcionaba queda intacto.
+    """
     url = f"https://github.com/{GITHUB_REPO}/releases/download/{programa['release']}/{programa['asset']}"
     destino_final = ruta_absoluta_programa(programa)
 
     if programa["tipo"] == "archivo":
         os.makedirs(os.path.dirname(destino_final), exist_ok=True)
         temp = destino_final + ".descarga"
-        descargar_a_archivo(url, temp)
-        os.replace(temp, destino_final)
+        try:
+            descargar_a_archivo(url, temp, firma=b"MZ")
+            os.replace(temp, destino_final)
+        finally:
+            if os.path.isfile(temp):
+                os.remove(temp)
     else:
         temp_zip = destino_final + ".zip.descarga"
         os.makedirs(os.path.dirname(destino_final), exist_ok=True)
-        descargar_a_archivo(url, temp_zip)
-        if os.path.isdir(destino_final):
-            shutil.rmtree(destino_final)
-        os.makedirs(destino_final, exist_ok=True)
-        with zipfile.ZipFile(temp_zip) as zf:
-            zf.extractall(destino_final)
-        os.remove(temp_zip)
+        try:
+            descargar_a_archivo(url, temp_zip, firma=b"PK")
+            with zipfile.ZipFile(temp_zip) as zf:
+                entrada_dañada = zf.testzip()
+                if entrada_dañada is not None:
+                    raise RuntimeError(f"El archivo descargado está corrupto (entrada dañada: {entrada_dañada}).")
+                # Recién acá, con el zip ya verificado, se reemplaza la instalación existente.
+                if os.path.isdir(destino_final):
+                    shutil.rmtree(destino_final)
+                os.makedirs(destino_final, exist_ok=True)
+                zf.extractall(destino_final)
+        finally:
+            if os.path.isfile(temp_zip):
+                os.remove(temp_zip)
 
 
 class HistorialWindow(tk.Toplevel):
@@ -621,7 +673,7 @@ class Launcher(tk.Tk):
                 self.after(0, lambda: self.status_var.set(f"Descargando actualización {tag}..."))
                 destino = os.path.join(BASE_DIR, "AppSanti_nuevo.exe")
                 try:
-                    descargar_a_archivo(url, destino)
+                    descargar_a_archivo(url, destino, firma=b"MZ")
                 except Exception:
                     self.after(0, lambda: self.status_var.set("No se pudo descargar la actualización."))
                 else:

@@ -92,6 +92,17 @@
       "release": "validador_preplanta_folios-v1.0.0",
       "asset": "margenes_pagina_folios.zip",
       "pestanas": ["CPS"]
+    },
+    {
+      "id": "indice_autores",
+      "nombre": "Índice de Autores",
+      "icono": "📇",
+      "version": "1.0.0",
+      "tipo": "archivo",
+      "ruta": "IndiceAutores\\dist\\indice_autores.exe",
+      "release": "indice_autores-v1.0.0",
+      "asset": "indice_autores.exe",
+      "pestanas": ["CPS"]
     }
   ]
 }

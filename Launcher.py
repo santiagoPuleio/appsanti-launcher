@@ -20,7 +20,7 @@ else:
 LOG_PATH = os.path.join(BASE_DIR, "registro_uso.csv")
 LOG_HEADERS = ["Programa", "Inicio", "Fin", "Duracion_seg", "Duracion"]
 
-__version__ = "2.0.4"
+__version__ = "2.0.5"
 GITHUB_REPO = "santiagoPuleio/appsanti-launcher"
 ASSET_NAME = "AppSanti.exe"
 MANIFEST_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/master/manifest.json"
@@ -61,7 +61,7 @@ DEFAULT_MANIFEST = {
             "ruta": r"generadorMeliBren (1)\GeneradorPDFBrenMeli\dist\generarPDF\generarPDF.exe",
             "release": "generador_pdf-v1.0.0",
             "asset": "generarPDF.exe",
-            "pestanas": ["Editorial", "CPS"],
+            "pestanas": ["CPS"],
         },
         {
             "id": "verificador_indices",

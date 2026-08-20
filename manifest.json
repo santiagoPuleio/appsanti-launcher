@@ -31,7 +31,7 @@
       "ruta": "generadorMeliBren (1)\\GeneradorPDFBrenMeli\\dist\\generarPDF\\generarPDF.exe",
       "release": "generador_pdf-v1.0.0",
       "asset": "generarPDF.exe",
-      "pestanas": ["Editorial", "CPS"]
+      "pestanas": ["CPS"]
     },
     {
       "id": "verificador_indices",

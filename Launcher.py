@@ -20,7 +20,7 @@ else:
 LOG_PATH = os.path.join(BASE_DIR, "registro_uso.csv")
 LOG_HEADERS = ["Programa", "Inicio", "Fin", "Duracion_seg", "Duracion"]
 
-__version__ = "2.0.3"
+__version__ = "2.0.4"
 GITHUB_REPO = "santiagoPuleio/appsanti-launcher"
 ASSET_NAME = "AppSanti.exe"
 MANIFEST_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/master/manifest.json"
@@ -65,7 +65,7 @@ DEFAULT_MANIFEST = {
         },
         {
             "id": "verificador_indices",
-            "nombre": "Verificador de Índices PDF",
+            "nombre": "Validador Indices (OpenArena)",
             "icono": "📄",
             "version": "1.0.0",
             "tipo": "carpeta",
@@ -89,7 +89,7 @@ DEFAULT_MANIFEST = {
         },
         {
             "id": "validador_indices_mejorado",
-            "nombre": "Validador de Índices Mejorado",
+            "nombre": "Validador de Pie v2",
             "icono": "📊",
             "version": "1.0.0",
             "tipo": "carpeta",

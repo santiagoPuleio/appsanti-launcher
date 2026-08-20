@@ -35,7 +35,7 @@
     },
     {
       "id": "verificador_indices",
-      "nombre": "Verificador de Índices PDF",
+      "nombre": "Validador Indices (OpenArena)",
       "icono": "📄",
       "version": "1.0.0",
       "tipo": "carpeta",
@@ -59,7 +59,7 @@
     },
     {
       "id": "validador_indices_mejorado",
-      "nombre": "Validador de Índices Mejorado",
+      "nombre": "Validador de Pie v2",
       "icono": "📊",
       "version": "1.0.0",
       "tipo": "carpeta",
